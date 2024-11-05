@@ -56,14 +56,16 @@ optional-dependencies.mic = [
 ]
 optional-dependencies.tests = [
   "check-manifest",
-  "coverage>=7.4.2",
+  # FIXME - need an iOS compatible version of coverage
+  # "coverage>=7.4.2",
   "defusedxml",
   "markdown2",
   "olefile",
   "packaging",
   "pyroma",
   "pytest",
-  "pytest-cov",
+  # FIXME
+  # "pytest-cov",
   "pytest-timeout",
   "trove-classifiers>=2024.10.12",
 ]
@@ -96,15 +98,47 @@ before-all = ".github/workflows/wheels-dependencies.sh"
 build-verbosity = 1
 
 config-settings = "raqm=enable raqm=vendor fribidi=vendor imagequant=disable"
-# Disable platform guessing on macOS
+# Disable platform guessing on macOS to avoid picking up homebrew etc
 macos.config-settings = "raqm=enable raqm=vendor fribidi=vendor imagequant=disable platform-guessing=disable"
+# Disable platform guessing on iOS, and disable raqm (since there won't be a
+# vendor version, and we can't distribute it due to licensing)
+iphoneos.config-settings = "raqm=disable imagequant=disable platform-guessing=disable"
+iphonesimulator.config-settings = "raqm=disable imagequant=disable platform-guessing=disable"
 
 test-command = "cd {project} && .github/workflows/wheels-test.sh"
 test-extras = "tests"
+test-requires = [
+  "numpy",
+]
+
+# iOS needs to be given a specific pytest invocation and list of test sources.
+iphoneos.test-command = "pytest --verbose selftest.py checks/check_wheel.py Tests"
+iphonesimulator.test-command = "pytest --verbose selftest.py checks/check_wheel.py Tests"
+
+iphoneos.test-sources = [
+  "checks",
+  "Tests",
+  "pyproject.toml",
+  "selftest.py",
+]
+iphonesimulator.test-sources = [
+  "checks",
+  "Tests",
+  "pyproject.toml",
+  "selftest.py",
+]
+# There's no numpy wheel for iOS
+iphoneos.test-requires = [  ]
+iphonesimulator.test-requires = [  ]
 
 [tool.cibuildwheel.macos.environment]
 PATH = "$(pwd)/build/deps/darwin/bin:$(dirname $(which python3)):/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
-DYLD_LIBRARY_PATH = "$(pwd)/build/deps/darwin/lib"
+
+[tool.cibuildwheel.iphoneos.environment]
+PATH = "$(pwd)/build/deps/iphoneos/bin:$(dirname $(which python3)):/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+
+[tool.cibuildwheel.iphonesimulator.environment]
+PATH = "$(pwd)/build/deps/iphonesimulator/bin:$(dirname $(which python3)):/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
 
 [tool.black]
 exclude = "wheels/multibuild"
@@ -160,7 +194,7 @@ lint.isort.required-imports = [
 max_supported_python = "3.13"
 
 [tool.pytest.ini_options]
-addopts = "-ra --color=yes"
+addopts = "-ra --color=auto"
 testpaths = [
   "Tests",
 ]

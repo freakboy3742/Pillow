@@ -16,7 +16,7 @@ cd $pillow
 if (!$?) { exit $LASTEXITCODE }
 & python selftest.py
 if (!$?) { exit $LASTEXITCODE }
-& python -m pytest -vx Tests\check_wheel.py
+& python -m pytest -vx checks\check_wheel.py
 if (!$?) { exit $LASTEXITCODE }
 & python -m pytest -vx Tests
 if (!$?) { exit $LASTEXITCODE }

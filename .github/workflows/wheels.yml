@@ -161,6 +161,60 @@ jobs:
           name: dist-${{ matrix.os }}${{ matrix.macosx_deployment_target && format('-{0}', matrix.macosx_deployment_target) }}-${{ matrix.cibw_arch }}${{ matrix.manylinux && format('-{0}', matrix.manylinux) }}
           path: ./wheelhouse/*.whl
 
+  mobile:
+    if: github.event_name != 'schedule' || github.repository_owner == 'python-pillow'
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "iOS x86_64 simulator"
+            platform: ios
+            arch: x86_64
+            abi: iphonesimulator
+            os: macos-13
+            iphoneos_deployment_target: "13.0"
+          - name: "iOS ARM64 simulator"
+            platform: ios
+            arch: arm64
+            abi: iphonesimulator
+            os: macos-latest
+            iphoneos_deployment_target: "13.0"
+          - name: "iOS ARM64 device"
+            platform: ios
+            arch: arm64
+            abi: iphoneos
+            os: macos-latest
+            iphoneos_deployment_target: "13.0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install cibuildwheel
+        run: |
+          python3 -m pip install -r .ci/requirements-cibw.txt
+
+      - name: Build wheels
+        run: |
+          python3 -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_PLATFORM: ${{ matrix.platform }}
+          CIBW_BUILD: "cp3*-ios_${{ matrix.arch }}_${{ matrix.abi }}"
+          CIBW_FREE_THREADED_SUPPORT: False
+          CIBW_PRERELEASE_PYTHONS: True
+          IPHONEOS_DEPLOYMENT_TARGET: ${{ matrix.iphoneos_deployment_target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-ios_${{ matrix.arch}}_${{ matrix.abi }}
+          path: ./wheelhouse/*.whl
+
   windows:
     if: github.event_name != 'schedule' || github.repository_owner == 'python-pillow'
     name: Windows ${{ matrix.cibw_arch }}

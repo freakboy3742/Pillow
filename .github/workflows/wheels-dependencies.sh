@@ -68,18 +68,16 @@ function build_pkg_config {
 function build_zlib_ng {
     if [ -e zlib-stamp ]; then return; fi
     fetch_unpack https://github.com/zlib-ng/zlib-ng/archive/$ZLIB_NG_VERSION.tar.gz zlib-ng-$ZLIB_NG_VERSION.tar.gz
-    (cd zlib-ng-$ZLIB_NG_VERSION \
-        && ./configure --prefix=$BUILD_PREFIX --zlib-compat \
-        && make -j4 \
-        && make install)
-
     if [ -n "$IS_MACOS" ]; then
         # Ensure that on macOS, the library name is an absolute path, not an
         # @rpath, so that delocate picks up the right library (and doesn't need
-        # DYLD_LIBRARY_PATH to be set). The default Makefile doesn't have an
-        # option to control the install_name.
-        install_name_tool -id $BUILD_PREFIX/lib/libz.1.dylib $BUILD_PREFIX/lib/libz.1.dylib
+        # DYLD_LIBRARY_PATH to be set).
+        install_name_flags="-dynamiclib -install_name $BUILD_PREFIX/lib/libz.1.dylib"
     fi
+    (cd zlib-ng-$ZLIB_NG_VERSION \
+        && LDFLAGS="$LDFLAGS $install_name_flags" ./configure --prefix=$BUILD_PREFIX --zlib-compat \
+        && make -j4 \
+        && make install)
     touch zlib-stamp
 }
 
